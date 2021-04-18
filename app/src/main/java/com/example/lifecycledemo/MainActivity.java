@@ -1,17 +1,23 @@
 package com.example.lifecycledemo;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+import androidx.lifecycle.Observer;
 
 public class MainActivity extends BaseActivity {
     private static final String TAG = "MainActivity";
     private TextView mTxt;
     private MyListener mMyListener;
     private boolean mIsGirl = false;
+    private MainViewModel mMainViewModel = new MainViewModel();
+    private LiveDataHelper mLiveDataHelper;
+    private Handler mHandler = new Handler(Looper.getMainLooper());
 
     @Override
     public int getResId() {
@@ -23,6 +29,7 @@ public class MainActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         mTxt = findViewById(R.id.txt);
         mIsGirl = true;
+        mLiveDataHelper = mMainViewModel.getLiveDataHelper();
 //        mMyListener = new MyListener(mIsGirl, new IPersonCallback() {
 //            @Override
 //            public void setPerson(Person person) {
@@ -34,10 +41,27 @@ public class MainActivity extends BaseActivity {
             @Override
             public void setPerson(Person person) {
                 mTxt.setText(person.getName());
+                mLiveDataHelper.updatePersonLiveData(person);
             }
         });
         getLifecycle().addObserver(mMyListener);
+
+
+        mLiveDataHelper.registPersonLiveData(this, mPersonObserver);
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mLiveDataHelper.updatePersonLiveData(new Person("myidol", 158));
+            }
+        }, 2000);
     }
+
+    private Observer<Person> mPersonObserver = new Observer<Person>() {
+        @Override
+        public void onChanged(Person person) {
+            mTxt.setText(person.getName());
+        }
+    };
 
     @Override
     protected void onResume() {
@@ -57,6 +81,12 @@ public class MainActivity extends BaseActivity {
         super.onStop();
         Log.i(TAG, "onStop");
         mMyListener.stop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     @Override
