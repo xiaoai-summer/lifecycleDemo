@@ -10,6 +10,10 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.Observer;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
 public class MainActivity extends BaseActivity {
     private static final String TAG = "MainActivity";
     private TextView mTxt;
@@ -54,6 +58,15 @@ public class MainActivity extends BaseActivity {
                 mLiveDataHelper.updatePersonLiveData(new Person("myidol", 158));
             }
         }, 2000);
+
+        EventBus.getDefault().register(this);
+
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                EventBus.getDefault().post(new MessageEvent(new Person("xiaoxingxing", 1)));
+            }
+        }, 3000);
     }
 
     private Observer<Person> mPersonObserver = new Observer<Person>() {
@@ -87,6 +100,13 @@ public class MainActivity extends BaseActivity {
     protected void onDestroy() {
         super.onDestroy();
         mHandler.removeCallbacksAndMessages(null);
+        EventBus.getDefault().unregister(this);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onReceiveEvent(MessageEvent messageEvent) {
+        Log.i(TAG, "EVENT--BUS onReceiveEvent" + messageEvent.getPerson().getName());
+        mTxt.setText(messageEvent.getPerson().getName());
     }
 
     @Override
